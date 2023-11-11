@@ -1,6 +1,7 @@
 using ApiCrud.Data;
 using ApiCrud.Models;
 using ApiCrud.Request;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,56 +11,85 @@ namespace ApiCrud.Controllers;
 [Route("ProductController")]
 public class ProductController : ControllerBase
 {
-    private readonly MyDbContext _myDbContext;
+    private readonly IPostProductRepository _postProductRepository;
+    private readonly IGetProductByIdRepository _getProductByIdRepository;
+    private readonly IGetProductRepository _getProductRepository;
+    private readonly IPatchProductRepository _patchProductRepository;
+    private readonly IDeleteProductRepository _deleteProductRepository;
 
-    public ProductController(MyDbContext dbContext)
+    public ProductController(
+        IPostProductRepository postProductRepository,
+        IGetProductByIdRepository getProductByIdRepository,
+        IGetProductRepository getProductRepository,
+        IPatchProductRepository patchProductRepository,
+        IDeleteProductRepository deleteProductRepository)
     {
-        _myDbContext = dbContext;
+        _postProductRepository = postProductRepository;
+        _getProductByIdRepository = getProductByIdRepository;
+        _getProductRepository = getProductRepository;
+        _patchProductRepository = patchProductRepository;
+        _deleteProductRepository = deleteProductRepository;
+        
     }
 
     [HttpPost]
     public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
     {
-        ProductModel productModel =
-            new()
-            {
-                Name = request.Name,
-                Price = request.Price,
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-            };
-
-        await _myDbContext.AddAsync(productModel);
-        await _myDbContext.SaveChangesAsync();
-
-        return Ok();
+        try
+        {
+            await _postProductRepository.CreateProduct(request);
+            return NoContent();
+        }
+        catch (Exception)
+        {
+            return BadRequest();
+        }
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProductFromId([FromRoute] int id)
     {
-        var response = await _myDbContext.Product.FirstAsync(key => key.Id == id);
-
-        return Ok(response);
+        try
+        {
+            var response = await _getProductByIdRepository.GetProducById(id);
+            return Ok(response);
+        }
+        catch (Exception)
+        {
+            return BadRequest();
+        }
     }
 
     [HttpGet]
     public async Task<IActionResult> GetAllProduct()
     {
-        var response = await _myDbContext.Product.ToListAsync();
+        try
+        {
+            var response = await _getProductRepository.GetProducAllAsync();
+            return Ok(response);
+        }
+        catch (Exception)
+        {
 
-        return Ok(response);
+            return BadRequest();
+        }
     }
 
     [HttpPatch("{id}/{price}")]
     public async Task<IActionResult> UpdateProductFromId([FromRoute] int id, [FromRoute] double price)
     {
-        var response = await _myDbContext.Product.FindAsync(id);
-        response.Price = price;
-
-        await _myDbContext.SaveChangesAsync();
+        try
+        {
+            var response = await _patchProductRepository.UpdateProductFromId(id, price);
+        response!.Price = price;
 
         return Ok(response);
+        }
+        catch (Exception)
+        {
+            
+            return BadRequest();
+        }
     }
 
     [HttpDelete("{id}")]
@@ -67,10 +97,8 @@ public class ProductController : ControllerBase
     {
         try
         {
-            var response = await _myDbContext.Product.FirstAsync(key => key.Id == id);
-            _myDbContext.Product.Remove(response);
-            await _myDbContext.SaveChangesAsync();
-            return Ok(response);
+            await _deleteProductRepository.DeleteProductFromId(id);
+            return Ok("Item removido com sucesso");
         }
         catch (ArgumentNullException)
         {

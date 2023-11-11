@@ -8,6 +8,13 @@ builder.Services.AddDbContext<MyDbContext>(
         options.UseSqlServer(builder.Configuration.GetConnectionString("SqlServerConnectionString"))
 );
 
+builder.Services.AddScoped<IGetProductRepository, GetProductRepository>();
+builder.Services.AddScoped<IGetProductByIdRepository, GetProductByIdRepository>();
+builder.Services.AddScoped<IPostProductRepository, PostProductRepository>();
+builder.Services.AddScoped<IPatchProductRepository, PatchProductRepository>();
+builder.Services.AddScoped<IDeleteProductRepository, DeleteProductRepository>();
+
+
 // Add services to the container.
 
 builder.Services.AddControllers();
